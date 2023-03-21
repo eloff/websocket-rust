@@ -3,7 +3,6 @@ use std::time::Duration;
 
 use axum::{extract::{
     ws::{Message, WebSocket, WebSocketUpgrade},
-    State,
 }, response::{IntoResponse}};
 use futures::{
     sink::SinkExt, stream::StreamExt,
@@ -14,8 +13,7 @@ use tokio::{
     sync::Mutex
 };
 
-use super::state::ServerState;
-
+use super::state::{ServerState, get_state};
 
 /// After the websocket_timeout, we send a ping to the client.
 /// If we still don't receive a response within this many seconds, we close the connection.
@@ -24,13 +22,13 @@ const LAST_RESORT_PING_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
-    State(state): State<&'static ServerState>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| websocket(socket, state))
+    ws.on_upgrade(move |socket| websocket(socket))
 }
 
 /// This function deals with a single websocket connection with a connected user
-pub async fn websocket(stream: WebSocket, state: &'static ServerState) {
+pub async fn websocket(stream: WebSocket) {
+    let state = get_state();
     let _track_conn = state.stats.web_socket.track_new_connection();
 
     // By splitting, we can send and receive at the same time.

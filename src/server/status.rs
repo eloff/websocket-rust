@@ -1,12 +1,12 @@
 use axum::{
     response::{IntoResponse, Response, Json},
     http::StatusCode,
-    extract::{State, Query}
+    extract::{Query}
 };
-
-use super::state::ServerState;
-
 use serde::Deserialize;
+
+use super::state::get_state;
+
 
 #[derive(Debug, Deserialize)]
 pub struct StatusOptions {
@@ -16,8 +16,8 @@ pub struct StatusOptions {
 
 pub async fn status(
         Query(opts) : Query<StatusOptions>,
-        State(state): State<&'static ServerState>,
 ) -> Response {
+    let state = get_state();
     // If status_key is set on state, make sure the user passes a matching key
     // This is a kind of primitive password protection
     if !state.status_key.is_empty() {

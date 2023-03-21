@@ -12,7 +12,7 @@ use axum::{
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use server::{
-    state::{ServerState},
+    state::{ServerState, set_state},
     ws::{websocket_handler},
     status::{status},
 };
@@ -33,16 +33,15 @@ async fn main() {
         .init();
 
     // Set up application state for use with with_state().
-    // We don't need Arc here, this lives as long as the process does
-    let state = ServerState::configure();
+    let state = ServerState::configure().await;
+    let addr = SocketAddr::from_str(&format!("{}:{}", state.listen_host, state.listen_port)).unwrap();
+    set_state(state);
 
     let app = Router::new()
         .route("/", get(index))
         .route("/status", get(status))
-        .route("/websocket", get(websocket_handler))
-        .with_state(state);
+        .route("/websocket", get(websocket_handler));
 
-    let addr = SocketAddr::from_str(&format!("{}:{}", state.listen_host, state.listen_port)).unwrap();
     tracing::info!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
